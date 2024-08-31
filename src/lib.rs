@@ -58,7 +58,6 @@ pub fn calculate_carbon_footprint(event: LambdaEvent<Request>) -> Response {
 }
 
 fn calculate_emissions_factor(zip_code: String) -> f32 {
-
     let emissions_value: f32 = EMISSIONS_DATA[&zip_code];
 
     emissions_value / 1000.0
