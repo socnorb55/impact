@@ -32,12 +32,12 @@ struct Vehicles {
 }
 
 pub fn calculate_carbon_footprint(event: LambdaEvent<Request>) -> Response {
-    let utility_co2_output: f32 =
+    let _utility_co2_output: f32 =
         calculate_utility_co2_output(event.payload.utility_usage, event.payload.zip_code);
 
-    let vehicle_co2_output: f32 = calculate_vehicle_co2_output(event.payload.vehicles);
+    let _vehicle_co2_output: f32 = calculate_vehicle_co2_output(event.payload.vehicles);
 
-    let waste_co2_output: f32 = calculate_waste_co2_output(
+    let _waste_co2_output: f32 = calculate_waste_co2_output(
         event.payload.household_member_count,
         event.payload.recycling_types,
     );
