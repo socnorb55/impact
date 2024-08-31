@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 pub struct Request {
     household_member_count: i32,
+    recycling_types: Vec<String>,
     utility_usage: UtilityUsage,
     vehicles: Vec<Vehicles>,
     zip_code: i32
@@ -36,7 +37,7 @@ pub fn calculate_carbon_footprint(event: LambdaEvent<Request>) -> Response {
 
     let vehicle_co2_output: f32 = calculate_vehicle_co2_output(event.payload.vehicles);
 
-    let waste_co2_output: f32 = calculate_waste_co2_output(event.payload.household_member_count);
+    let waste_co2_output: f32 = calculate_waste_co2_output(event.payload.household_member_count, event.payload.recycling_types);
 
     Response {
         req_id: event.context.request_id,
@@ -79,9 +80,24 @@ fn calculate_vehicle_co2_output(vehicles: Vec<Vehicles>) -> f32 {
 
 }
 
-fn calculate_waste_co2_output(household_count: i32) -> f32 {
+fn calculate_waste_co2_output(household_count: i32, recycling_types: Vec<String>) -> f32 {
 
-    household_count as f32 * 692.0
+    let mut recycling_reduction_output: f32 = 0.0;
+
+    for recycling_type in recycling_types {
+
+        match recycling_type.as_str() {
+            "aluminum and steel cans" => recycling_reduction_output += household_count as f32 * 89.38,
+            "plastic" => recycling_reduction_output += household_count as f32 * 35.56,
+            "glass" => recycling_reduction_output += household_count as f32 * 25.39,
+            "newspaper" => recycling_reduction_output += household_count as f32 * 113.14,
+            "magazines" => recycling_reduction_output += household_count as f32 * 27.46,
+            _ => recycling_reduction_output += 0.0
+        };
+    }
+
+
+    household_count as f32 * 692.0 - recycling_reduction_output
 }
 
 #[cfg(test)]
@@ -125,6 +141,7 @@ mod tests {
 
         let payload = Request {
             household_member_count: 2,
+            recycling_types: vec![],
             utility_usage: utilities,
             vehicles: vec![vehicle_1, vehicle_2],
             zip_code: 22079
@@ -177,7 +194,7 @@ mod tests {
     #[test]
     fn test_calculate_waste_co2_output() {
 
-        let response: f32 = calculate_waste_co2_output(2);
+        let response: f32 = calculate_waste_co2_output(2, vec![]);
 
         assert_eq!(response, 1384.0);
     }
