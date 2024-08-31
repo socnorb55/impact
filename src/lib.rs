@@ -1,5 +1,7 @@
 use lambda_runtime::LambdaEvent;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct Request {
@@ -7,7 +9,7 @@ pub struct Request {
     recycling_types: Vec<String>,
     utility_usage: UtilityUsage,
     vehicles: Vec<Vehicles>,
-    zip_code: i32,
+    zip_code: String,
 }
 
 #[derive(Serialize)]
@@ -31,29 +33,43 @@ struct Vehicles {
     weekly_miles: i32,
 }
 
+lazy_static! {
+    static ref EMISSIONS_DATA: HashMap<String, f32> = {
+        let emissions_json = include_str!("emissions_data.json");
+        serde_json::from_str(emissions_json).expect("Unable to load emissions_data.json")
+    };
+}
+
 pub fn calculate_carbon_footprint(event: LambdaEvent<Request>) -> Response {
-    let _utility_co2_output: f32 =
+    let utility_co2_output: f32 =
         calculate_utility_co2_output(event.payload.utility_usage, event.payload.zip_code);
 
-    let _vehicle_co2_output: f32 = calculate_vehicle_co2_output(event.payload.vehicles);
+    let vehicle_co2_output: f32 = calculate_vehicle_co2_output(event.payload.vehicles);
 
-    let _waste_co2_output: f32 = calculate_waste_co2_output(
+    let waste_co2_output: f32 = calculate_waste_co2_output(
         event.payload.household_member_count,
         event.payload.recycling_types,
     );
 
     Response {
         req_id: event.context.request_id,
-        carbon_footprint: 31931.0,
+        carbon_footprint: utility_co2_output + vehicle_co2_output + waste_co2_output,
     }
 }
 
-fn calculate_utility_co2_output(utility_usage: UtilityUsage, zip_code: i32) -> f32 {
-    let mut utility_co2_output: f32 = 0.0;
-    let emission_factor: f32 = 1.0795718;
-    println!("{}", zip_code);
+fn calculate_emissions_factor(zip_code: String) -> f32 {
 
-    utility_co2_output += (utility_usage.electricity / 0.1188) * emission_factor * 12.0;
+    let emissions_value: f32 = EMISSIONS_DATA[&zip_code];
+
+    emissions_value / 1000.0
+}
+
+fn calculate_utility_co2_output(utility_usage: UtilityUsage, zip_code: String) -> f32 {
+    let mut utility_co2_output: f32 = 0.0;
+
+    let emissions_factor: f32 = calculate_emissions_factor(zip_code);
+
+    utility_co2_output += (utility_usage.electricity / 0.1188) * emissions_factor * 12.0;
 
     utility_co2_output += (utility_usage.fuel_oil / 4.02) * 22.61 * 12.0;
 
@@ -140,13 +156,13 @@ mod tests {
             recycling_types: vec![],
             utility_usage: utilities,
             vehicles: vec![vehicle_1, vehicle_2],
-            zip_code: 22079,
+            zip_code: String::from("22079"),
         };
         let event: LambdaEvent<Request> = LambdaEvent { payload, context };
 
         let result: crate::Response = calculate_carbon_footprint(event);
 
-        assert_eq!(result.carbon_footprint, 31931.0);
+        assert_eq!(result.carbon_footprint, 31900.8);
         assert_eq!(result.req_id, id.to_string());
     }
 
@@ -159,11 +175,11 @@ mod tests {
             propane: 0.0,
         };
 
-        let zip_code: i32 = 22079;
+        let zip_code: String = String::from("22079");
 
         let response: f32 = calculate_utility_co2_output(utilities, zip_code);
 
-        assert_eq!(response, 21897.092);
+        assert_eq!(response, 21897.094);
     }
 
     #[test]
