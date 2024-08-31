@@ -173,6 +173,17 @@ data "aws_iam_policy_document" "impact_iac_policy" {
 
   statement {
     actions = [
+      "sns:*"
+    ]
+
+    resources = [
+      aws_sns_topic.incident_notifier_topic.arn,
+      aws_sns_topic_subscription.incident_notifier_subscription.arn
+    ]
+  }
+
+  statement {
+    actions = [
       "sqs:*"
     ]
 
