@@ -1,1 +1,1 @@
-{"heat_source": "natural_gas", "household_member_count": 2, "recycle_types": [], "utility_usage": {"electricity": 170, "fuel_oil": 0, "natural_gas": 25, "propane": 0}, "vehicles": [{"maintenance": true, "mph": 27, "weekly_miles": 50}, {"maintenance": true, "mph": 23, "weekly_miles": 150}], "zip_code": 22079}
+{"household_member_count": 2, "utility_usage": {"electricity": 170, "fuel_oil": 0, "natural_gas": 25, "propane": 0}, "vehicles": [{"maintenance": true, "mpg": 27, "weekly_miles": 50}, {"maintenance": true, "mpg": 23, "weekly_miles": 150}], "zip_code": 22079}
