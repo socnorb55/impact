@@ -13,7 +13,34 @@ resource "aws_iam_openid_connect_provider" "github_actions_oidc_provider" {
   ]
 }
 
-data "aws_iam_policy_document" "impac_iac_arpd" {
+resource "aws_iam_policy" "impact_calculator_lambda_policy" {
+  name   = "impact-calculator-lambda"
+  path   = "/system/runtime/"
+  policy = data.aws_iam_policy_document.impact_calculator_lambda_policy.json
+}
+
+resource "aws_iam_policy" "impact_iac_policy" {
+  name   = "impact-iac"
+  path   = "/system/iac/"
+  policy = data.aws_iam_policy_document.impac_iac_policy.json
+}
+
+data "aws_iam_policy_document" "impact_calculator_lambda_arpd" {
+  statement {
+    actions = [
+      "sts:AssumeRole"
+    ]
+
+    principals {
+      identifiers = [
+        "lambda.amazonaws.com"
+      ]
+      type = "Service"
+    }
+  }
+}
+
+data "aws_iam_policy_document" "impact_iac_arpd" {
   statement {
     actions = [
       "sts:AssumeRoleWithWebIdentity"
@@ -40,25 +67,67 @@ data "aws_iam_policy_document" "impac_iac_arpd" {
   }
 }
 
-resource "aws_iam_policy" "impact_iac_policy" {
-  name   = "impact-iac"
-  path   = "/system/iac/"
-  policy = data.aws_iam_policy_document.impac_iac_policy.json
-}
-
-data "aws_iam_policy_document" "impac_iac_policy" {
+data "aws_iam_policy_document" "impact_calculator_lambda_policy" {
   statement {
     actions = [
-      "iam:AddClientIDToOpenIDConnectProvider",
-      "iam:CreateOpenIDConnectProvider",
-      "iam:DeleteOpenIDConnectProvider",
-      "iam:GetOpenIDConnectProvider",
-      "iam:ListOpenIDConnectProviderTags",
-      "iam:ListOpenIDConnectProviders",
-      "iam:RemoveClientIDFromOpenIDConnectProvider",
-      "iam:TagOpenIDConnectProvider",
-      "iam:UntagOpenIDConnectProvider",
-      "iam:UpdateOpenIDConnectProviderThumbprint"
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+
+    resources = [
+      aws_cloudwatch_log_group.impact_calculator_lambda.arn
+    ]
+  }
+
+  statement {
+    actions = [
+      "sqs:SendMessage"
+    ]
+
+    resources = [
+      aws_sqs_queue.impact_calculator_deadletter_queue.arn
+    ]
+  }
+
+  statement {
+    actions = [
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords"
+    ]
+
+    resources = [
+      "*"
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "impact_iac_policy" {
+
+  statement {
+    actions = [
+      "cloudwatch:*"
+    ]
+
+    resources = [
+      aws_cloudwatch_alarm.impact_calculator_dead_letter_alarm.arn,
+      aws_cloudwatch_log_group.impact_calculator_lambda.arn
+    ]
+  }
+
+  statement {
+    actions = [
+      "iam:*Policy*"
+    ]
+
+    resources = [
+      aws_iam_policy.impact_iac_policy.arn
+    ]
+  }
+
+  statement {
+    actions = [
+      "iam:*OpenIDConnect*"
     ]
 
     resources = [
@@ -68,17 +137,7 @@ data "aws_iam_policy_document" "impac_iac_policy" {
 
   statement {
     actions = [
-      "iam:AttachRolePolicy",
-      "iam:CreateRole",
-      "iam:DeleteRole",
-      "iam:DetachRolePolicy",
-      "iam:GetRole",
-      "iam:ListAttachedRolePolicies",
-      "iam:ListRoles",
-      "iam:ListRoleTags",
-      "iam:TagRole",
-      "iam:UntagRole",
-      "iam:UpdateRole"
+      "iam:*Role*"
     ]
 
     resources = [
@@ -88,25 +147,13 @@ data "aws_iam_policy_document" "impac_iac_policy" {
 
   statement {
     actions = [
-      "iam:CreatePolicy",
-      "iam:CreatePolicyVersion",
-      "iam:DeletePolicy",
-      "iam:GetPolicy",
-      "iam:GetPolicyVersion",
-      "iam:ListPolicies",
-      "iam:ListPolicyTags",
-      "iam:SetDefaultPolicyVersion",
-      "iam:TagPolicy",
-      "iam:UntagPolicy",
-      "iam:UpdatePolicy"
+      "lambda:*"
     ]
 
     resources = [
-      aws_iam_policy.impact_iac_policy.arn
+      aws_lambda_function.impact_calculator_function.arn
     ]
   }
-
-  
 
   statement {
     actions = [
@@ -123,13 +170,35 @@ data "aws_iam_policy_document" "impac_iac_policy" {
       "${aws_s3_bucket.impact_iac_bucket.arn}/*"
     ]
   }
+
+  statement {
+    actions = [
+      "sqs:*"
+    ]
+
+    resources = [
+      aws_sqs_queue.impact_calculator_deadletter_queue.arn
+    ]
+  }
+}
+
+resource "aws_iam_role" "impact_calculator_lambda_role" {
+  assume_role_policy    = data.aws_iam_policy_document.impact_calculator_lambda_arpd.arn
+  force_detach_policies = true
+  name                  = "impact-calculator-lambda"
+  path                  = "/system/runtime/"
 }
 
 resource "aws_iam_role" "impact_iac_role" {
-  assume_role_policy    = data.aws_iam_policy_document.impac_iac_arpd.json
+  assume_role_policy    = data.aws_iam_policy_document.impact_iac_arpd.json
   force_detach_policies = true
   name                  = "impact-iac"
   path                  = "/system/iac/"
+}
+
+resource "aws_iam_role_policy_attachment" "impact_calculator_lambda_policy_attachment" {
+  role       = aws_iam_role.impact_calculator_lambda_role.name
+  policy_arn = aws_iam_policy.impact_calculator_lambda_policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "impact_iac_policy_attachment" {
