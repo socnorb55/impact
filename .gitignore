@@ -24,7 +24,7 @@ Cargo.lock
 *.terraform*
 *app.css*
 frontend/dist/**
-
+frontend/dist/index.html
 # Added by cargo
 
 /target
