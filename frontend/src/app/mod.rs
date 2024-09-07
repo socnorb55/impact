@@ -19,7 +19,7 @@ pub enum Route {
     #[at("/calculator")]
     Calculator,
     #[at("/login")]
-    Login
+    Login,
 }
 
 fn switch(routes: Route) -> Html {
@@ -27,7 +27,7 @@ fn switch(routes: Route) -> Html {
         Route::NotFound => html! { <h1>{ "404" }</h1> },
         Route::Home => html! { <Home /> },
         Route::Calculator => html! { <Calculator /> },
-        Route::Login => html! { <Login /> }
+        Route::Login => html! { <Login /> },
     }
 }
 
