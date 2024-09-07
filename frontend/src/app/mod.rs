@@ -8,7 +8,6 @@ pub mod login;
 use calculator::Calculator;
 use home::Home;
 use login::Login;
-use crate::components::nav::Nav;
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {
@@ -36,10 +35,7 @@ fn switch(routes: Route) -> Html {
 pub fn app() -> Html {
     html! {
         <BrowserRouter>
-            <div class="bg-cosmic-latte text-eerie-black font-serif">
-                <Nav />
                 <Switch<Route> render={switch} />
-            </div>
         </BrowserRouter>
     }
 }

@@ -23,6 +23,7 @@ Cargo.lock
 *.guide*
 *.terraform*
 *app.css*
+frontend/dist/**
 
 # Added by cargo
 
