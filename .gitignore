@@ -21,3 +21,10 @@ Cargo.lock
 #.idea/
 
 *.guide*
+*.terraform*
+*app.css*
+frontend/dist/**
+frontend/dist/index.html
+# Added by cargo
+
+/target
