@@ -11,6 +11,8 @@ pub fn login() -> Html {
                 <input id="password" type="text" name="password" /><br /><br />
                 <input id="login_submit" type="submit" />
             </form>
+            { "Sign Up" }
+            <link />
         </div>
     }
 }
