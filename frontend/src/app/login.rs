@@ -1,7 +1,7 @@
 use yew::prelude::*;
 
 #[function_component(Login)]
-pub fn calculator() -> Html {
+pub fn login() -> Html {
     html! {
         <div class="login">
             <form>
